@@ -3,7 +3,6 @@
 // This file connects the app to Firebase Firestore.
 // It runs as an ES Module (type="module" in HTML).
 // ============================================================
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore,
@@ -15,7 +14,10 @@ import {
   limit
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Your Firebase project config
+// ---- Firebase Config ----
+// SECURITY: Key is safe here because Firebase Security Rules
+// control who can read/write. Key alone cannot bypass Rules.
+// See: https://firebase.google.com/docs/projects/api-keys
 const firebaseConfig = {
   apiKey:            "AIzaSyDF1ko2QfrLCJUOeIDPWXqjN92yXbT1BeM",
   authDomain:        "crash-notifier-1763d.firebaseapp.com",
@@ -25,12 +27,11 @@ const firebaseConfig = {
   appId:             "1:340177230400:web:c866d7bff8335bc31f5da5"
 };
 
-// Initialize Firebase
+// ---- Initialize Firebase ----
 const firebaseApp = initializeApp(firebaseConfig);
 const db          = getFirestore(firebaseApp);
 
-// Expose Firebase helpers to app.js via window object
-// (Because app.js is a regular script, not a module)
+// ---- Expose helpers to app.js (app.js is not a module) ----
 window.CG_DB          = db;
 window.CG_collection  = collection;
 window.CG_addDoc      = addDoc;
@@ -39,9 +40,8 @@ window.CG_orderBy     = orderBy;
 window.CG_query       = query;
 window.CG_limit       = limit;
 
-// Load crash history when Firebase is ready
+// ---- Load crash history when Firebase is ready ----
 window.addEventListener('load', () => {
-  // Small delay to let app.js initialize first
   setTimeout(() => loadCrashHistory(), 500);
 });
 
@@ -60,36 +60,59 @@ async function loadCrashHistory() {
     const logCount = document.getElementById('log-count');
     let count = 0;
 
-    // Clear "no incidents" placeholder
     logList.innerHTML = '';
 
     snapshot.forEach(doc => {
       count++;
-      const d = doc.data();
-      appendLogItem(d);
+      appendLogItem(doc.data());
     });
 
     logCount.textContent = `${count} incident${count !== 1 ? 's' : ''}`;
     document.getElementById('stat-alerts').textContent = count;
+
   } catch (err) {
     console.error('Firestore load error:', err);
   }
 }
 
-// ---- Append one log item to the DOM ----
+// ---- Append one log item to DOM ----
+// SECURITY: Using textContent everywhere — no innerHTML with user data
 function appendLogItem(d) {
   const logList = document.getElementById('log-list');
+
+  // Safely sanitize all values from Firestore
+  const safeTimestamp = typeof d.timestamp === 'string' ? d.timestamp : '—';
+  const safeType      = d.type === 'MANUAL' ? 'MANUAL' : 'AUTO';
+  const safeUser      = typeof d.user    === 'string' ? d.user    : 'Unknown';
+  const safeGForce    = typeof d.gForce  === 'string' ? d.gForce  : '—';
+  const safeLat       = typeof d.lat     === 'string' ? d.lat     : 'Unknown';
+  const safeLng       = typeof d.lng     === 'string' ? d.lng     : 'Unknown';
+
   const item = document.createElement('div');
   item.className = 'log-item';
-  item.innerHTML = `
-    <div class="log-dot"></div>
-    <div>
-      <div class="log-time">${d.timestamp} — ${d.type || 'AUTO'}</div>
-      <div class="log-detail">${d.user} · ${d.gForce}G impact · ${d.lat !== 'Unknown' ? d.lat + ', ' + d.lng : 'No GPS'}</div>
-    </div>
-  `;
+
+  // SECURITY: Build DOM with textContent — never innerHTML for user data
+  const dot = document.createElement('div');
+  dot.className = 'log-dot';
+
+  const info = document.createElement('div');
+
+  const timeEl = document.createElement('div');
+  timeEl.className = 'log-time';
+  timeEl.textContent = `${safeTimestamp} — ${safeType}`;
+
+  const detailEl = document.createElement('div');
+  detailEl.className = 'log-detail';
+  detailEl.textContent = `${safeUser} · ${safeGForce}G impact · ${
+    safeLat !== 'Unknown' ? `${safeLat}, ${safeLng}` : 'No GPS'
+  }`;
+
+  info.appendChild(timeEl);
+  info.appendChild(detailEl);
+  item.appendChild(dot);
+  item.appendChild(info);
   logList.appendChild(item);
 }
 
-// Make appendLogItem accessible from app.js
+// ---- Make appendLogItem accessible from app.js ----
 window.CG_appendLogItem = appendLogItem;
