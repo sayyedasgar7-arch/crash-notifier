@@ -1,174 +1,255 @@
 // ============================================================
-// app.js — CrashGuard Main Application Logic
-//
-// Handles:
-//   1. Setup / profile saving
-//   2. Sensor permission + reading
-//   3. Monitoring start/stop
-//   4. Crash detection
-//   5. Countdown popup
-//   6. Alert sending (Firebase + GPS)
+// app.js — CrashGuard Main Application Logic v2.0
 // ============================================================
-
 
 // ============================================================
 // SECTION 1: APP STATE
-// These variables hold the current state of the app.
 // ============================================================
 
-let userData    = {};       // Stores user name + emergency contact
-let monitoring  = false;    // Is crash monitoring ON?
-let sensorReady = false;    // Has the user granted sensor permission?
-let crashTimer  = null;     // Reference to the countdown interval
-let countdown   = 30;       // Seconds before auto-alert
+let userData    = {};       // { name, contacts: [{name, num}] }
+let monitoring  = false;
+let sensorReady = false;
+let crashTimer  = null;
+let countdown   = 10;       // 10 second countdown
 
-// Last known accelerometer values
 let accel = { x: 0, y: 0, z: 0 };
 
-// Crash detection threshold in m/s²
-// 2.5G = 24.5 m/s². Adjust higher to reduce false positives.
-const CRASH_THRESHOLD = 24.5;
+const CRASH_THRESHOLD = 24.5;  // 2.5G in m/s²
+const WARN_THRESHOLD  = 14.7;  // 1.5G pre-impact warning
 
-// Counter for how many alerts have been sent this session
-let alertCount = 0;
+let alertCount   = 0;
+let warningActive = false;
 
 
 // ============================================================
 // SECTION 2: SCREEN NAVIGATION
-// Shows one screen, hides all others.
 // ============================================================
 
 function showScreen(screenId) {
-  document.querySelectorAll('.screen').forEach(s => {
-    s.classList.remove('active');
-  });
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
   window.scrollTo(0, 0);
+
+  // Auto-init emergency screen when navigated to
+  if (screenId === 'screen-emergency') {
+    initEmergencyScreen();
+  }
+
+  // Update car monitor when navigated to
+  if (screenId === 'screen-car-monitor') {
+    updateCarMonitor();
+  }
 }
 
 
 // ============================================================
-// SECTION 3: SETUP SCREEN
+// SECTION 3: SETUP SCREEN — MULTIPLE CONTACTS
 // ============================================================
 
-// Called when user taps "Continue →" on setup screen
-function handleSetup() {
-  const name    = document.getElementById('inp-name').value.trim();
-  const cName   = document.getElementById('inp-contact-name').value.trim();
-  const cNum    = document.getElementById('inp-contact-num').value.trim();
+// Dynamic contacts list in setup
+let setupContacts = [];
 
-  // Validate all fields are filled
-  if (!name || !cName || !cNum) {
-    alert('Please fill in all fields.');
+function addContactRow() {
+  const idx = setupContacts.length;
+  setupContacts.push({ name: '', num: '' });
+  renderSetupContacts();
+}
+
+function removeContactRow(idx) {
+  if (setupContacts.length <= 1) {
+    alert('At least one emergency contact is required.');
+    return;
+  }
+  setupContacts.splice(idx, 1);
+  renderSetupContacts();
+}
+
+function renderSetupContacts() {
+  const container = document.getElementById('contacts-container');
+  container.innerHTML = setupContacts.map((c, idx) => `
+    <div class="contact-row-setup" id="contact-row-${idx}">
+      <div class="contact-row-header">
+        <span class="contact-row-label">Contact ${idx + 1}</span>
+        ${setupContacts.length > 1
+          ? `<button class="btn-remove-contact" onclick="removeContactRow(${idx})">✕ Remove</button>`
+          : ''}
+      </div>
+      <div class="field-group" style="margin-bottom:10px">
+        <label class="field-label">Name</label>
+        <input class="field-input" type="text" placeholder="e.g. Ammi, Bhai, Friend"
+          value="${c.name}"
+          oninput="setupContacts[${idx}].name = this.value" />
+      </div>
+      <div class="field-group" style="margin-bottom:0">
+        <label class="field-label">Phone Number</label>
+        <input class="field-input" type="tel" placeholder="+91 98765 43210"
+          value="${c.num}"
+          oninput="setupContacts[${idx}].num = this.value" />
+      </div>
+    </div>
+  `).join('');
+}
+
+function handleSetup() {
+  const name = document.getElementById('inp-name').value.trim();
+
+  if (!name) {
+    alert('Please enter your full name.');
     return;
   }
 
-  // Save to localStorage so user doesn't need to re-enter
-  userData = { name, contactName: cName, contactNum: cNum };
+  // Re-read contact values from DOM before validating
+  const contactInputs = document.querySelectorAll('#contacts-container .contact-row-setup');
+  const contacts = [];
+
+  contactInputs.forEach((row, idx) => {
+    const inputs = row.querySelectorAll('input');
+    const cName = inputs[0].value.trim();
+    const cNum  = inputs[1].value.trim();
+    if (cName && cNum) {
+      contacts.push({ name: cName, num: cNum });
+    }
+  });
+
+  if (contacts.length === 0) {
+    alert('Please add at least one emergency contact.');
+    return;
+  }
+
+  userData = { name, contacts };
   localStorage.setItem('cg_user', JSON.stringify(userData));
 
   applyUserToUI();
   showScreen('screen-dashboard');
 }
 
-// Pushes user data into dashboard UI elements
 function applyUserToUI() {
   document.getElementById('greeting-name').textContent = `Hello, ${userData.name.split(' ')[0]}.`;
-  document.getElementById('contact-name-disp').textContent = userData.contactName;
-  document.getElementById('contact-num-disp').textContent  = userData.contactNum;
-
-  // Show first letter of contact name as avatar
-  const initial = userData.contactName.charAt(0).toUpperCase();
-  document.getElementById('contact-avatar').textContent = initial;
+  renderContactsOnDashboard();
 }
 
-// Called when user taps "Edit" on contact card
+function renderContactsOnDashboard() {
+  const list = document.getElementById('contacts-list');
+  if (!list || !userData.contacts) return;
+
+  list.innerHTML = userData.contacts.map((c, idx) => `
+    <div class="contact-row">
+      <div class="contact-avatar">${c.name.charAt(0).toUpperCase()}</div>
+      <div class="contact-info">
+        <p class="contact-name">${c.name}</p>
+        <p class="contact-num">${c.num}</p>
+      </div>
+    </div>
+  `).join('');
+}
+
 function editContact() {
-  // Pre-fill fields and go back to setup screen
-  document.getElementById('inp-name').value          = userData.name;
-  document.getElementById('inp-contact-name').value  = userData.contactName;
-  document.getElementById('inp-contact-num').value   = userData.contactNum;
+  // Pre-fill setup form
+  document.getElementById('inp-name').value = userData.name;
+  setupContacts = userData.contacts ? [...userData.contacts] : [{ name: '', num: '' }];
+  renderSetupContacts();
   showScreen('screen-setup');
 }
 
 
 // ============================================================
 // SECTION 4: AUTO-LOGIN
-// If user has already set up, skip setup screen.
 // ============================================================
 
 window.addEventListener('load', () => {
+  // Init setup with one empty contact row
+  setupContacts = [{ name: '', num: '' }];
+  renderSetupContacts();
+
   const saved = localStorage.getItem('cg_user');
   if (saved) {
     userData = JSON.parse(saved);
+
+    // Migrate old single-contact format
+    if (userData.contactName && !userData.contacts) {
+      userData.contacts = [{ name: userData.contactName, num: userData.contactNum }];
+      delete userData.contactName;
+      delete userData.contactNum;
+      localStorage.setItem('cg_user', JSON.stringify(userData));
+    }
+
     applyUserToUI();
     showScreen('screen-dashboard');
   }
+
+  // Request notification permission
+  requestNotificationPermission();
 });
 
 
 // ============================================================
-// SECTION 5: SENSOR PERMISSION
-// DeviceMotion needs user permission on iOS 13+.
-// Android grants it automatically.
+// SECTION 5: PUSH NOTIFICATIONS
+// ============================================================
+
+async function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+}
+
+function sendNotification(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, {
+      body,
+      icon: 'https://raw.githubusercontent.com/sayyedasgar7-arch/crash-notifier/main/icon.png',
+      badge: 'https://raw.githubusercontent.com/sayyedasgar7-arch/crash-notifier/main/icon.png',
+      vibrate: [300, 100, 300, 100, 300],
+      requireInteraction: true
+    });
+  }
+}
+
+
+// ============================================================
+// SECTION 6: SENSOR PERMISSION
 // ============================================================
 
 function requestSensor() {
-  // Check if browser supports motion events
   if (typeof DeviceMotionEvent === 'undefined') {
-    alert('Motion sensors not supported. Please open this app on a mobile phone.');
+    alert('Motion sensors not supported. Open this app on a mobile phone.');
     return;
   }
 
-  // iOS 13+ requires explicit permission request
   if (typeof DeviceMotionEvent.requestPermission === 'function') {
     DeviceMotionEvent.requestPermission()
       .then(result => {
-        if (result === 'granted') {
-          activateSensor();
-        } else {
-          alert('Sensor permission denied. Cannot detect crashes without motion access.');
-        }
+        if (result === 'granted') activateSensor();
+        else alert('Sensor permission denied. Cannot detect crashes without motion access.');
       })
       .catch(err => console.error('Sensor permission error:', err));
   } else {
-    // Android and older browsers — no permission needed
     activateSensor();
   }
 }
 
-// Called after permission is granted
 function activateSensor() {
   sensorReady = true;
 
-  // Show sensor data card
   document.getElementById('sensor-card').style.display   = 'block';
   document.getElementById('sensor-notice').style.display = 'none';
+  document.getElementById('btn-start').disabled          = false;
 
-  // Enable the Start button
-  document.getElementById('btn-start').disabled = false;
-
-  // Start listening to device motion events
   window.addEventListener('devicemotion', handleMotion);
 
-  // Update sensor button to show it's done
-  document.getElementById('btn-sensor').textContent  = '✓ Sensors Active';
-  document.getElementById('btn-sensor').style.color  = 'var(--green)';
+  document.getElementById('btn-sensor').textContent    = '✓ Sensors Active';
+  document.getElementById('btn-sensor').style.color    = 'var(--green)';
   document.getElementById('btn-sensor').style.borderColor = 'var(--green)';
-  document.getElementById('btn-sensor').disabled = true;
+  document.getElementById('btn-sensor').disabled       = true;
 }
 
 
 // ============================================================
-// SECTION 6: MOTION EVENT HANDLER
-// Reads accelerometer + calculates G-force impact.
+// SECTION 7: MOTION EVENT + PRE-IMPACT WARNING
 // ============================================================
 
 function handleMotion(event) {
-  // Only process if monitoring is active
   if (!monitoring) return;
 
-  // Use accelerationIncludingGravity (most reliable on mobile)
   const a = event.accelerationIncludingGravity || event.acceleration;
   if (!a) return;
 
@@ -176,33 +257,52 @@ function handleMotion(event) {
   accel.y = a.y || 0;
   accel.z = a.z || 0;
 
-  // Update live values in UI
   document.getElementById('val-x').textContent = Math.abs(accel.x).toFixed(2);
   document.getElementById('val-y').textContent = Math.abs(accel.y).toFixed(2);
   document.getElementById('val-z').textContent = Math.abs(accel.z).toFixed(2);
 
-  // Calculate total force magnitude using Pythagorean theorem
   const magnitude = Math.sqrt(accel.x**2 + accel.y**2 + accel.z**2);
-  const gForce    = magnitude / 9.8;   // Convert m/s² to G
+  const gForce    = magnitude / 9.8;
 
-  // Update G-force stat
   document.getElementById('stat-gforce').textContent = gForce.toFixed(2) + ' G';
 
-  // Update impact bar (cap at 100%)
-  const barPct  = Math.min((magnitude / (CRASH_THRESHOLD * 1.4)) * 100, 100);
-  const bar     = document.getElementById('impact-bar');
+  // Update impact bar
+  const barPct = Math.min((magnitude / (CRASH_THRESHOLD * 1.4)) * 100, 100);
+  const bar = document.getElementById('impact-bar');
   bar.style.width = barPct + '%';
-
-  // Color the bar based on intensity
   bar.classList.remove('warn', 'danger');
   if (gForce > 2.5)      bar.classList.add('danger');
   else if (gForce > 1.5) bar.classList.add('warn');
 
-  // Color Z value if extreme
   document.getElementById('val-z').classList.toggle('danger', Math.abs(accel.z) > 20);
 
-  // ---- CRASH DETECTION ----
-  // Only trigger if no countdown is already running
+  // Update car monitor if active
+  const carScreen = document.getElementById('screen-car-monitor');
+  if (carScreen && carScreen.classList.contains('active')) {
+    document.getElementById('car-gforce').textContent = gForce.toFixed(2) + 'G';
+    const carBar = document.getElementById('car-impact-bar');
+    if (carBar) {
+      carBar.style.width = barPct + '%';
+      carBar.className = 'car-impact-fill' + (gForce > 2.5 ? ' danger' : gForce > 1.5 ? ' warn' : '');
+    }
+  }
+
+  // ---- PRE-IMPACT WARNING (1.5G) ----
+  const warning = document.getElementById('pre-impact-warning');
+  if (warning) {
+    if (gForce >= 1.5 && gForce < 2.5 && !warningActive) {
+      warningActive = true;
+      warning.style.display = 'flex';
+      warning.classList.add('pulse');
+      sendNotification('⚠️ High Impact Detected', `G-Force: ${gForce.toFixed(2)}G — Possible rough impact. Stay alert!`);
+    } else if (gForce < 1.5) {
+      warningActive = false;
+      warning.style.display = 'none';
+      warning.classList.remove('pulse');
+    }
+  }
+
+  // ---- CRASH DETECTION (2.5G) ----
   if (magnitude > CRASH_THRESHOLD && !crashTimer) {
     triggerCrashAlert(gForce);
   }
@@ -210,7 +310,7 @@ function handleMotion(event) {
 
 
 // ============================================================
-// SECTION 7: MONITORING START / STOP
+// SECTION 8: MONITORING START / STOP
 // ============================================================
 
 function startMonitoring() {
@@ -221,66 +321,70 @@ function startMonitoring() {
 
   monitoring = true;
 
-  // Update UI
   document.getElementById('monitor-state').textContent = 'Active';
   document.getElementById('monitor-state').className   = 'monitor-state active';
   document.getElementById('monitor-icon').className    = 'monitor-icon active';
   document.getElementById('status-dot').className      = 'status-dot active';
   document.getElementById('status-label').textContent  = 'Monitoring';
 
-  // Show Stop button, hide Start
-  document.getElementById('btn-start').style.display   = 'none';
-  document.getElementById('btn-stop').style.display    = 'block';
-  document.getElementById('btn-sensor').style.display  = 'none';
+  document.getElementById('btn-start').style.display  = 'none';
+  document.getElementById('btn-stop').style.display   = 'block';
+  document.getElementById('btn-sensor').style.display = 'none';
+
+  // Update car monitor status
+  const carStatus = document.getElementById('car-status');
+  if (carStatus) carStatus.textContent = '● Active';
 }
 
 function stopMonitoring() {
   monitoring = false;
+  warningActive = false;
 
-  // Reset UI
+  const warning = document.getElementById('pre-impact-warning');
+  if (warning) warning.style.display = 'none';
+
   document.getElementById('monitor-state').textContent = 'Not Active';
   document.getElementById('monitor-state').className   = 'monitor-state';
   document.getElementById('monitor-icon').className    = 'monitor-icon';
   document.getElementById('status-dot').className      = 'status-dot';
   document.getElementById('status-label').textContent  = 'Standby';
 
-  // Show Start button, hide Stop
-  document.getElementById('btn-start').style.display   = 'flex';
-  document.getElementById('btn-stop').style.display    = 'none';
-  document.getElementById('btn-sensor').style.display  = 'flex';
+  document.getElementById('btn-start').style.display  = 'flex';
+  document.getElementById('btn-stop').style.display   = 'none';
+  document.getElementById('btn-sensor').style.display = 'flex';
+
+  const carStatus = document.getElementById('car-status');
+  if (carStatus) carStatus.textContent = '● Standby';
 }
 
 
 // ============================================================
-// SECTION 8: CRASH ALERT POPUP
+// SECTION 9: CRASH ALERT POPUP — 10 SECOND COUNTDOWN
 // ============================================================
 
 function triggerCrashAlert(gForce) {
-  // Pause monitoring while alert is open
   stopMonitoring();
 
-  // Show alert modal
+  // Send push notification immediately
+  sendNotification('🚨 CRASH DETECTED!', `Impact: ${gForce.toFixed(2)}G — Emergency alert in 10 seconds if no response.`);
+
   document.getElementById('modal-alert').style.display = 'flex';
 
-  // Reset countdown
-  countdown = 30;
-  updateCountdownUI(30);
+  countdown = 10;
+  updateCountdownUI(10);
 
-  // Total circumference of the SVG circle (2 * π * r = 2 * 3.14159 * 44 ≈ 276.5)
   const circumference = 276.5;
   const ring = document.getElementById('cd-fill');
   ring.style.strokeDashoffset = 0;
 
-  // Tick every second
   crashTimer = setInterval(() => {
     countdown--;
     updateCountdownUI(countdown);
 
-    // Animate the ring draining
-    const offset = circumference * (1 - countdown / 30);
+    // Ring drains over 10 seconds
+    const offset = circumference * (1 - countdown / 10);
     ring.style.strokeDashoffset = offset;
 
-    // Time's up — send alert automatically
     if (countdown <= 0) {
       clearInterval(crashTimer);
       crashTimer = null;
@@ -289,21 +393,18 @@ function triggerCrashAlert(gForce) {
   }, 1000);
 }
 
-// Update the numbers inside the countdown circle
 function updateCountdownUI(sec) {
-  document.getElementById('countdown-num').textContent  = sec;
-  document.getElementById('cd-sec-text').textContent    = sec;
+  document.getElementById('countdown-num').textContent = sec;
+  document.getElementById('cd-sec-text').textContent   = sec;
 }
 
-// User tapped "I'm Safe"
 function iAmSafe() {
   clearInterval(crashTimer);
   crashTimer = null;
   document.getElementById('modal-alert').style.display = 'none';
-  startMonitoring();  // Resume monitoring
+  startMonitoring();
 }
 
-// User tapped "Send Alert Now"
 function sendNow() {
   clearInterval(crashTimer);
   crashTimer = null;
@@ -313,15 +414,12 @@ function sendNow() {
 
 
 // ============================================================
-// SECTION 9: SEND EMERGENCY ALERT
-// Gets GPS → saves to Firebase → shows confirmation
+// SECTION 10: SEND EMERGENCY ALERT — ALL CONTACTS
 // ============================================================
 
 async function sendEmergencyAlert(gForce, type) {
-  // Close alert modal
   document.getElementById('modal-alert').style.display = 'none';
 
-  // 1. Try to get GPS coordinates
   let lat = 'Unknown', lng = 'Unknown';
   try {
     const pos = await new Promise((resolve, reject) =>
@@ -334,22 +432,21 @@ async function sendEmergencyAlert(gForce, type) {
     document.getElementById('stat-gps').textContent = 'No GPS';
   }
 
-  // 2. Build alert record
   const timestamp = new Date().toLocaleString('en-IN');
   const gVal      = typeof gForce === 'number' ? gForce.toFixed(2) : '—';
+  const contacts  = userData.contacts || [];
 
   const alertData = {
-    user:        userData.name,
-    contactName: userData.contactName,
-    contactNum:  userData.contactNum,
+    user:      userData.name,
+    contacts:  contacts,
     timestamp,
     lat, lng,
-    gForce:      gVal,
+    gForce:    gVal,
     type,
-    mapsLink:    lat !== 'Unknown' ? `https://maps.google.com/?q=${lat},${lng}` : 'N/A'
+    mapsLink:  lat !== 'Unknown' ? `https://maps.google.com/?q=${lat},${lng}` : 'N/A'
   };
 
-  // 3. Save to Firebase Firestore
+  // Save to Firebase
   try {
     await window.CG_addDoc(
       window.CG_collection(window.CG_DB, 'crash_alerts'),
@@ -359,78 +456,92 @@ async function sendEmergencyAlert(gForce, type) {
     console.error('Firestore save error:', err);
   }
 
-  // 4. Add to local crash log
   if (window.CG_appendLogItem) {
     window.CG_appendLogItem(alertData);
   }
 
-  // 5. Update alert count
   alertCount++;
   document.getElementById('stat-alerts').textContent = alertCount;
-  const logCount = document.getElementById('log-count');
-  logCount.textContent = `${alertCount} incident${alertCount !== 1 ? 's' : ''}`;
+  document.getElementById('log-count').textContent = `${alertCount} incident${alertCount !== 1 ? 's' : ''}`;
 
-  // 6. Show "Alert Sent" confirmation modal
+  // Build contacts list for modal
+  const contactsHTML = contacts.map(c =>
+    `<strong>${c.name}</strong> · ${c.num}`
+  ).join('<br>');
+
   document.getElementById('sent-details').innerHTML = `
     <strong>Name:</strong> ${userData.name}<br>
-    <strong>Contact:</strong> ${userData.contactName} · ${userData.contactNum}<br>
+    <strong>Alert sent to:</strong><br>${contactsHTML}<br>
     <strong>Time:</strong> ${timestamp}<br>
     <strong>Impact:</strong> ${gVal}G<br>
     <strong>Location:</strong> ${lat !== 'Unknown' ? lat + ', ' + lng : 'Unavailable'}<br>
     <strong>Saved to Firebase:</strong> ✓
   `;
   document.getElementById('modal-sent').style.display = 'flex';
+
+  // Send notification
+  sendNotification('🚨 Alert Sent', `Emergency alert sent to ${contacts.length} contact(s). Impact: ${gVal}G`);
 }
 
-// Close the "Alert Sent" modal and resume monitoring
 function closeSentModal() {
   document.getElementById('modal-sent').style.display = 'none';
+  showScreen('screen-dashboard');
   startMonitoring();
 }
 
 
 // ============================================================
-// SECTION 10: EMERGENCY ASSISTANCE SCREEN
+// SECTION 11: CAR MONITOR MODE
 // ============================================================
 
-// Stores current lat/lng for map links
+function updateCarMonitor() {
+  const status = document.getElementById('car-status');
+  if (status) {
+    status.textContent = monitoring ? '● Active' : '● Standby';
+  }
+
+  const name = document.getElementById('car-username');
+  if (name && userData.name) {
+    name.textContent = userData.name.split(' ')[0];
+  }
+}
+
+function toggleMonitoringFromCar() {
+  if (monitoring) {
+    stopMonitoring();
+  } else {
+    startMonitoring();
+  }
+  updateCarMonitor();
+}
+
+
+// ============================================================
+// SECTION 12: EMERGENCY ASSISTANCE SCREEN
+// ============================================================
+
 let currentLat = null;
 let currentLng = null;
-
-// Which tab is active: 'hospital' or 'police'
-let activeTab = 'hospital';
-
-// Cache results so we don't re-fetch on tab switch
+let activeTab  = 'hospital';
 let nearbyCache = { hospital: null, police: null };
 
-
-// Called when user taps "Get Emergency Help" on sent modal
 function goToEmergencyScreen() {
   document.getElementById('modal-sent').style.display = 'none';
   showScreen('screen-emergency');
-  initEmergencyScreen();
 }
 
-// Initialize emergency screen: get GPS + fetch nearby
 function initEmergencyScreen() {
-  // Reset cache
   nearbyCache = { hospital: null, police: null };
 
-  // Get GPS location
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       currentLat = pos.coords.latitude;
       currentLng = pos.coords.longitude;
 
-      // Show coordinates
       document.getElementById('location-coords').textContent =
         `${currentLat.toFixed(5)}, ${currentLng.toFixed(5)}`;
 
-      // Enable Maps button
-      const mapsBtn = document.getElementById('btn-maps');
-      mapsBtn.disabled = false;
-
-      // Fetch nearby hospitals first
+      document.getElementById('btn-maps').disabled = false;
       fetchNearbyPlaces();
     },
     (err) => {
@@ -441,19 +552,17 @@ function initEmergencyScreen() {
   );
 }
 
-// Open Google Maps at current location
 function openMaps() {
   if (!currentLat) return;
   window.open(`https://maps.google.com/?q=${currentLat},${currentLng}`, '_blank');
 }
 
-// Share location via Web Share API (or fallback copy)
 function shareLocation() {
   if (!currentLat) {
     alert('Location not available yet.');
     return;
   }
-  const url = `https://maps.google.com/?q=${currentLat},${currentLng}`;
+  const url  = `https://maps.google.com/?q=${currentLat},${currentLng}`;
   const text = `🚨 Emergency! I need help. My location: ${url}`;
 
   if (navigator.share) {
@@ -465,15 +574,11 @@ function shareLocation() {
   }
 }
 
-// Switch between Hospital / Police tabs
 function switchTab(type, btnEl) {
   activeTab = type;
-
-  // Update tab button styles
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   btnEl.classList.add('active');
 
-  // Show cached results if available
   if (nearbyCache[type]) {
     renderNearbyList(nearbyCache[type], type);
   } else {
@@ -481,17 +586,13 @@ function switchTab(type, btnEl) {
   }
 }
 
-// Fetch nearby places using OpenStreetMap Overpass API (FREE, no key needed)
 async function fetchNearbyPlaces() {
   if (!currentLat || !currentLng) return;
 
   showNearbyLoading();
 
-  // Overpass query — searches within 5km radius
   const radius = 5000;
-  const tag = activeTab === 'hospital'
-    ? 'amenity=hospital'
-    : 'amenity=police';
+  const tag    = activeTab === 'hospital' ? 'amenity=hospital' : 'amenity=police';
 
   const query = `
     [out:json][timeout:10];
@@ -510,12 +611,10 @@ async function fetchNearbyPlaces() {
 
     if (!res.ok) throw new Error('API error');
 
-    const data = await res.json();
+    const data   = await res.json();
     const places = parsePlaces(data.elements);
 
-    // Cache results
     nearbyCache[activeTab] = places;
-
     renderNearbyList(places, activeTab);
 
   } catch (err) {
@@ -524,31 +623,27 @@ async function fetchNearbyPlaces() {
   }
 }
 
-// Parse Overpass API response into clean objects
 function parsePlaces(elements) {
   return elements
     .map(el => {
-      // Get lat/lng (nodes have direct, ways have center)
       const lat = el.lat || (el.center && el.center.lat);
       const lng = el.lon || (el.center && el.center.lon);
       if (!lat || !lng) return null;
 
       const name = el.tags?.name || el.tags?.['name:en'] || 'Unnamed';
       const dist = getDistanceKm(currentLat, currentLng, lat, lng);
-
       return { name, lat, lng, dist };
     })
     .filter(Boolean)
-    .sort((a, b) => a.dist - b.dist)  // Sort closest first
-    .slice(0, 6);                      // Max 6 results
+    .sort((a, b) => a.dist - b.dist)
+    .slice(0, 6);
 }
 
-// Haversine formula — calculates distance between two GPS coords in km
 function getDistanceKm(lat1, lng1, lat2, lng2) {
-  const R = 6371;
+  const R    = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a =
+  const a    =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1 * Math.PI / 180) *
     Math.cos(lat2 * Math.PI / 180) *
@@ -556,10 +651,9 @@ function getDistanceKm(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Render the list of nearby places into DOM
 function renderNearbyList(places, type) {
-  const list = document.getElementById('nearby-list');
-  const icon = type === 'hospital' ? '🏥' : '👮';
+  const list      = document.getElementById('nearby-list');
+  const icon      = type === 'hospital' ? '🏥' : '👮';
   const iconClass = type === 'hospital' ? 'hospital' : 'police';
 
   document.getElementById('nearby-loading').style.display = 'none';
@@ -590,23 +684,14 @@ function renderNearbyList(places, type) {
   `).join('');
 }
 
-// Show loading state
 function showNearbyLoading() {
   document.getElementById('nearby-loading').style.display = 'flex';
   document.getElementById('nearby-error').style.display   = 'none';
   document.getElementById('nearby-list').style.display    = 'none';
 }
 
-// Show error state
 function showNearbyError() {
   document.getElementById('nearby-loading').style.display = 'none';
   document.getElementById('nearby-error').style.display   = 'block';
   document.getElementById('nearby-list').style.display    = 'none';
-}
-
-// Back to dashboard from emergency screen
-function closeSentModal() {
-  document.getElementById('modal-sent').style.display = 'none';
-  showScreen('screen-dashboard');
-  startMonitoring();
 }
