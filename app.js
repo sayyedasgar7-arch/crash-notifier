@@ -1,5 +1,5 @@
 // ============================================================
-// app.js — CrashGuard Main Application Logic v2.0
+// app.js — CrashGuard Main Application Logic v2.1 (Secured)
 // ============================================================
 
 // ============================================================
@@ -17,8 +17,27 @@ let accel = { x: 0, y: 0, z: 0 };
 const CRASH_THRESHOLD = 24.5;  // 2.5G in m/s²
 const WARN_THRESHOLD  = 14.7;  // 1.5G pre-impact warning
 
-let alertCount   = 0;
+let alertCount    = 0;
 let warningActive = false;
+
+// ---- SECURITY: Rate limiting ----
+let lastAlertTime = 0;
+const ALERT_COOLDOWN_MS = 30000; // 30 seconds between alerts
+
+// ---- SECURITY: Sanitize input before injecting into HTML ----
+// Prevents XSS attacks via localStorage tampering or injected values
+function sanitize(str) {
+  if (typeof str !== 'string') return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ---- SECURITY: Validate phone number format ----
+function isValidPhone(num) {
+  // Allows: +91 98765 43210 | 9876543210 | +919876543210 | 07712345678
+  return /^[\+]?[\d\s\-\(\)]{7,15}$/.test(num.trim());
+}
 
 
 // ============================================================
@@ -46,7 +65,6 @@ function showScreen(screenId) {
 // SECTION 3: SETUP SCREEN — MULTIPLE CONTACTS
 // ============================================================
 
-// Dynamic contacts list in setup
 let setupContacts = [];
 
 function addContactRow() {
@@ -77,13 +95,13 @@ function renderSetupContacts() {
       <div class="field-group" style="margin-bottom:10px">
         <label class="field-label">Name</label>
         <input class="field-input" type="text" placeholder="e.g. Ammi, Bhai, Friend"
-          value="${c.name}"
+          value="${sanitize(c.name)}"
           oninput="setupContacts[${idx}].name = this.value" />
       </div>
       <div class="field-group" style="margin-bottom:0">
         <label class="field-label">Phone Number</label>
         <input class="field-input" type="tel" placeholder="+91 98765 43210"
-          value="${c.num}"
+          value="${sanitize(c.num)}"
           oninput="setupContacts[${idx}].num = this.value" />
       </div>
     </div>
@@ -98,15 +116,32 @@ function handleSetup() {
     return;
   }
 
+  // SECURITY: limit name length
+  if (name.length > 80) {
+    alert('Name is too long. Max 80 characters.');
+    return;
+  }
+
   // Re-read contact values from DOM before validating
   const contactInputs = document.querySelectorAll('#contacts-container .contact-row-setup');
   const contacts = [];
 
   contactInputs.forEach((row, idx) => {
     const inputs = row.querySelectorAll('input');
-    const cName = inputs[0].value.trim();
-    const cNum  = inputs[1].value.trim();
+    const cName  = inputs[0].value.trim();
+    const cNum   = inputs[1].value.trim();
+
     if (cName && cNum) {
+      // SECURITY: validate phone number format
+      if (!isValidPhone(cNum)) {
+        alert(`Contact ${idx + 1}: "${cNum}" is not a valid phone number.\nUse format: +91 98765 43210`);
+        return;
+      }
+      // SECURITY: limit field lengths
+      if (cName.length > 50) {
+        alert(`Contact ${idx + 1} name is too long. Max 50 characters.`);
+        return;
+      }
       contacts.push({ name: cName, num: cNum });
     }
   });
@@ -124,6 +159,7 @@ function handleSetup() {
 }
 
 function applyUserToUI() {
+  // SECURITY: textContent used — safe from XSS
   document.getElementById('greeting-name').textContent = `Hello, ${userData.name.split(' ')[0]}.`;
   renderContactsOnDashboard();
 }
@@ -132,19 +168,19 @@ function renderContactsOnDashboard() {
   const list = document.getElementById('contacts-list');
   if (!list || !userData.contacts) return;
 
+  // SECURITY: sanitize() used before injecting into innerHTML
   list.innerHTML = userData.contacts.map((c, idx) => `
     <div class="contact-row">
-      <div class="contact-avatar">${c.name.charAt(0).toUpperCase()}</div>
+      <div class="contact-avatar">${sanitize(c.name.charAt(0).toUpperCase())}</div>
       <div class="contact-info">
-        <p class="contact-name">${c.name}</p>
-        <p class="contact-num">${c.num}</p>
+        <p class="contact-name">${sanitize(c.name)}</p>
+        <p class="contact-num">${sanitize(c.num)}</p>
       </div>
     </div>
   `).join('');
 }
 
 function editContact() {
-  // Pre-fill setup form
   document.getElementById('inp-name').value = userData.name;
   setupContacts = userData.contacts ? [...userData.contacts] : [{ name: '', num: '' }];
   renderSetupContacts();
@@ -161,9 +197,41 @@ window.addEventListener('load', () => {
   setupContacts = [{ name: '', num: '' }];
   renderSetupContacts();
 
-  const saved = localStorage.getItem('cg_user');
+  let saved = null;
+
+  try {
+    // SECURITY: wrap in try/catch — localStorage could be tampered with
+    const raw = localStorage.getItem('cg_user');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+
+      // SECURITY: validate structure before using it
+      if (
+        parsed &&
+        typeof parsed.name === 'string' &&
+        parsed.name.length > 0 &&
+        parsed.name.length < 100 &&
+        Array.isArray(parsed.contacts) &&
+        parsed.contacts.length > 0 &&
+        parsed.contacts.every(c =>
+          typeof c.name === 'string' && c.name.length > 0 &&
+          typeof c.num  === 'string' && c.num.length  > 0
+        )
+      ) {
+        saved = parsed;
+      } else {
+        // Corrupt or tampered data — clear it
+        console.warn('CrashGuard: localStorage data invalid, clearing.');
+        localStorage.removeItem('cg_user');
+      }
+    }
+  } catch (e) {
+    console.error('CrashGuard: localStorage parse error, clearing.', e);
+    localStorage.removeItem('cg_user');
+  }
+
   if (saved) {
-    userData = JSON.parse(saved);
+    userData = saved;
 
     // Migrate old single-contact format
     if (userData.contactName && !userData.contacts) {
@@ -196,9 +264,9 @@ function sendNotification(title, body) {
   if ('Notification' in window && Notification.permission === 'granted') {
     new Notification(title, {
       body,
-      icon: 'https://raw.githubusercontent.com/sayyedasgar7-arch/crash-notifier/main/icon.png',
-      badge: 'https://raw.githubusercontent.com/sayyedasgar7-arch/crash-notifier/main/icon.png',
-      vibrate: [300, 100, 300, 100, 300],
+      icon:             'https://raw.githubusercontent.com/sayyedasgar7-arch/crash-notifier/main/icon.png',
+      badge:            'https://raw.githubusercontent.com/sayyedasgar7-arch/crash-notifier/main/icon.png',
+      vibrate:          [300, 100, 300, 100, 300],
       requireInteraction: true
     });
   }
@@ -236,10 +304,10 @@ function activateSensor() {
 
   window.addEventListener('devicemotion', handleMotion);
 
-  document.getElementById('btn-sensor').textContent    = '✓ Sensors Active';
-  document.getElementById('btn-sensor').style.color    = 'var(--green)';
+  document.getElementById('btn-sensor').textContent      = '✓ Sensors Active';
+  document.getElementById('btn-sensor').style.color      = 'var(--green)';
   document.getElementById('btn-sensor').style.borderColor = 'var(--green)';
-  document.getElementById('btn-sensor').disabled       = true;
+  document.getElementById('btn-sensor').disabled         = true;
 }
 
 
@@ -331,13 +399,12 @@ function startMonitoring() {
   document.getElementById('btn-stop').style.display   = 'block';
   document.getElementById('btn-sensor').style.display = 'none';
 
-  // Update car monitor status
   const carStatus = document.getElementById('car-status');
   if (carStatus) carStatus.textContent = '● Active';
 }
 
 function stopMonitoring() {
-  monitoring = false;
+  monitoring    = false;
   warningActive = false;
 
   const warning = document.getElementById('pre-impact-warning');
@@ -365,7 +432,6 @@ function stopMonitoring() {
 function triggerCrashAlert(gForce) {
   stopMonitoring();
 
-  // Send push notification immediately
   sendNotification('🚨 CRASH DETECTED!', `Impact: ${gForce.toFixed(2)}G — Emergency alert in 10 seconds if no response.`);
 
   document.getElementById('modal-alert').style.display = 'flex';
@@ -381,7 +447,6 @@ function triggerCrashAlert(gForce) {
     countdown--;
     updateCountdownUI(countdown);
 
-    // Ring drains over 10 seconds
     const offset = circumference * (1 - countdown / 10);
     ring.style.strokeDashoffset = offset;
 
@@ -418,6 +483,17 @@ function sendNow() {
 // ============================================================
 
 async function sendEmergencyAlert(gForce, type) {
+
+  // SECURITY: Rate limiting — prevent alert spam (30 second cooldown)
+  const now = Date.now();
+  if (now - lastAlertTime < ALERT_COOLDOWN_MS && type !== 'MANUAL') {
+    console.warn('CrashGuard: Alert rate-limited. Too soon since last alert.');
+    document.getElementById('modal-alert').style.display = 'none';
+    startMonitoring();
+    return;
+  }
+  lastAlertTime = now;
+
   document.getElementById('modal-alert').style.display = 'none';
 
   let lat = 'Unknown', lng = 'Unknown';
@@ -462,24 +538,23 @@ async function sendEmergencyAlert(gForce, type) {
 
   alertCount++;
   document.getElementById('stat-alerts').textContent = alertCount;
-  document.getElementById('log-count').textContent = `${alertCount} incident${alertCount !== 1 ? 's' : ''}`;
+  document.getElementById('log-count').textContent   = `${alertCount} incident${alertCount !== 1 ? 's' : ''}`;
 
-  // Build contacts list for modal
+  // SECURITY: sanitize before injecting into innerHTML
   const contactsHTML = contacts.map(c =>
-    `<strong>${c.name}</strong> · ${c.num}`
+    `<strong>${sanitize(c.name)}</strong> · ${sanitize(c.num)}`
   ).join('<br>');
 
   document.getElementById('sent-details').innerHTML = `
-    <strong>Name:</strong> ${userData.name}<br>
+    <strong>Name:</strong> ${sanitize(userData.name)}<br>
     <strong>Alert sent to:</strong><br>${contactsHTML}<br>
-    <strong>Time:</strong> ${timestamp}<br>
-    <strong>Impact:</strong> ${gVal}G<br>
-    <strong>Location:</strong> ${lat !== 'Unknown' ? lat + ', ' + lng : 'Unavailable'}<br>
+    <strong>Time:</strong> ${sanitize(timestamp)}<br>
+    <strong>Impact:</strong> ${sanitize(gVal)}G<br>
+    <strong>Location:</strong> ${lat !== 'Unknown' ? sanitize(lat) + ', ' + sanitize(lng) : 'Unavailable'}<br>
     <strong>Saved to Firebase:</strong> ✓
   `;
   document.getElementById('modal-sent').style.display = 'flex';
 
-  // Send notification
   sendNotification('🚨 Alert Sent', `Emergency alert sent to ${contacts.length} contact(s). Impact: ${gVal}G`);
 }
 
@@ -502,6 +577,7 @@ function updateCarMonitor() {
 
   const name = document.getElementById('car-username');
   if (name && userData.name) {
+    // SECURITY: textContent — safe from XSS
     name.textContent = userData.name.split(' ')[0];
   }
 }
@@ -520,9 +596,9 @@ function toggleMonitoringFromCar() {
 // SECTION 12: EMERGENCY ASSISTANCE SCREEN
 // ============================================================
 
-let currentLat = null;
-let currentLng = null;
-let activeTab  = 'hospital';
+let currentLat  = null;
+let currentLng  = null;
+let activeTab   = 'hospital';
 let nearbyCache = { hospital: null, police: null };
 
 function goToEmergencyScreen() {
@@ -538,6 +614,7 @@ function initEmergencyScreen() {
       currentLat = pos.coords.latitude;
       currentLng = pos.coords.longitude;
 
+      // SECURITY: textContent — safe from XSS
       document.getElementById('location-coords').textContent =
         `${currentLat.toFixed(5)}, ${currentLng.toFixed(5)}`;
 
@@ -606,7 +683,7 @@ async function fetchNearbyPlaces() {
   try {
     const res = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
-      body: query
+      body:   query
     });
 
     if (!res.ok) throw new Error('API error');
@@ -665,19 +742,21 @@ function renderNearbyList(places, type) {
     return;
   }
 
+  // SECURITY: sanitize() on place names from OpenStreetMap API
+  // SECURITY: encodeURIComponent() on coordinates in URLs
   list.innerHTML = places.map(p => `
     <div class="nearby-item">
       <div class="nearby-item-icon ${iconClass}">${icon}</div>
       <div class="nearby-item-info">
-        <div class="nearby-item-name">${p.name}</div>
+        <div class="nearby-item-name">${sanitize(p.name)}</div>
         <div class="nearby-item-dist">📍 ${p.dist < 1
           ? Math.round(p.dist * 1000) + ' m away'
           : p.dist.toFixed(1) + ' km away'
         }</div>
       </div>
       <a class="btn-directions"
-         href="https://maps.google.com/maps?daddr=${p.lat},${p.lng}"
-         target="_blank">
+         href="https://maps.google.com/maps?daddr=${encodeURIComponent(p.lat + ',' + p.lng)}"
+         target="_blank" rel="noopener noreferrer">
         Directions
       </a>
     </div>
