@@ -1,0 +1,22 @@
+{
+  "name": "CrashGuard",
+  "short_name": "CrashGuard",
+  "description": "Emergency Automatic Crash Notification System",
+  "start_url": "/crash-notifier/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ff3b30",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/sayyedasgar7-arch/crash-notifier/main/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/sayyedasgar7-arch/crash-notifier/main/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
