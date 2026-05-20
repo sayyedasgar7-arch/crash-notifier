@@ -1,3 +1,4 @@
+cat > /mnt/user-data/outputs/styles.css << 'CSSEOF'
 /* ============================================================
    CrashGuard — styles.css
    Theme: Apple / Notion inspired — clean white, minimal
@@ -12,33 +13,29 @@
 }
 
 :root {
-  /* Colors */
   --white:       #ffffff;
-  --bg:          #f5f5f7;       /* Apple-style light gray background */
-  --surface:     #ffffff;       /* Card background */
-  --border:      #e5e5e7;       /* Subtle borders */
-  --text-primary:   #1d1d1f;   /* Almost black — Apple body text */
-  --text-secondary: #6e6e73;   /* Gray subtitle text */
-  --text-tertiary:  #aeaeb2;   /* Placeholder / muted */
+  --bg:          #f5f5f7;
+  --surface:     #ffffff;
+  --border:      #e5e5e7;
+  --text-primary:   #1d1d1f;
+  --text-secondary: #6e6e73;
+  --text-tertiary:  #aeaeb2;
 
-  --red:         #ff3b30;       /* Emergency / danger — Apple red */
-  --red-light:   #fff1f0;       /* Red background tint */
-  --green:       #34c759;       /* Safe state — Apple green */
+  --red:         #ff3b30;
+  --red-light:   #fff1f0;
+  --green:       #34c759;
   --green-light: #f0fff4;
 
-  --blue:        #007aff;       /* Primary action — Apple blue */
+  --blue:        #007aff;
   --blue-light:  #f0f5ff;
 
-  /* Typography */
   --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* Spacing */
   --radius-sm:  8px;
   --radius-md:  12px;
   --radius-lg:  16px;
   --radius-xl:  20px;
 
-  /* Shadows — very subtle */
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
 }
@@ -54,7 +51,6 @@ html, body {
 }
 
 /* ---------- SCREEN SYSTEM ---------- */
-/* Each "screen" is a full-page view. Only .active is visible. */
 .screen {
   display: none;
   min-height: 100vh;
@@ -78,7 +74,6 @@ html, body {
   gap: 24px;
 }
 
-/* Brand / Logo block */
 .brand {
   text-align: center;
 }
@@ -109,7 +104,6 @@ html, body {
   font-weight: 400;
 }
 
-/* Setup note at bottom */
 .setup-note {
   font-size: 12px;
   color: var(--text-tertiary);
@@ -141,7 +135,6 @@ html, body {
   margin-bottom: 24px;
 }
 
-/* Small uppercase label used inside cards */
 .card-label {
   font-size: 12px;
   font-weight: 600;
@@ -211,7 +204,6 @@ html, body {
 .btn-primary:hover  { opacity: 0.88; }
 .btn-primary:active { transform: scale(0.98); }
 
-/* Green START button */
 .btn-start {
   flex: 1;
   padding: 13px;
@@ -229,7 +221,6 @@ html, body {
 .btn-start:hover    { opacity: 0.88; }
 .btn-start:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* Red STOP button */
 .btn-stop {
   width: 100%;
   margin-top: 12px;
@@ -247,7 +238,6 @@ html, body {
 
 .btn-stop:hover { opacity: 0.8; }
 
-/* Outline sensor button */
 .btn-sensor {
   flex: 1;
   padding: 13px;
@@ -264,7 +254,6 @@ html, body {
 
 .btn-sensor:hover { background: var(--blue-light); }
 
-/* Small edit button */
 .btn-edit {
   font-family: var(--font);
   font-size: 13px;
@@ -317,7 +306,6 @@ html, body {
   letter-spacing: -0.3px;
 }
 
-/* Status badge in navbar */
 .status-badge {
   display: flex;
   align-items: center;
@@ -338,7 +326,6 @@ html, body {
   transition: background 0.3s;
 }
 
-/* When monitoring is active */
 .status-dot.active {
   background: var(--green);
   box-shadow: 0 0 0 3px rgba(52,199,89,0.2);
@@ -350,7 +337,6 @@ html, body {
   50%       { box-shadow: 0 0 0 5px rgba(52,199,89,0.1); }
 }
 
-/* Dashboard scrollable body */
 .dashboard-body {
   max-width: 480px;
   margin: 0 auto;
@@ -360,7 +346,6 @@ html, body {
   gap: 14px;
 }
 
-/* Greeting at top */
 .greeting-block {
   padding: 4px 4px 8px;
 }
@@ -376,9 +361,6 @@ html, body {
   color: var(--text-secondary);
   margin-top: 2px;
 }
-
-/* MONITORING CARD */
-.monitor-card {}
 
 .monitor-top {
   display: flex;
@@ -405,7 +387,6 @@ html, body {
 
 .monitor-icon.active { color: var(--green); }
 
-/* Notice about sensor permission */
 .sensor-notice {
   display: flex;
   align-items: flex-start;
@@ -504,7 +485,6 @@ html, body {
   color: var(--text-tertiary);
 }
 
-/* Impact force bar */
 .impact-bar-wrap {
   display: flex;
   align-items: center;
@@ -601,7 +581,6 @@ html, body {
   padding: 20px 0 8px;
 }
 
-/* Individual log entry */
 .log-item {
   display: flex;
   align-items: flex-start;
@@ -642,9 +621,8 @@ html, body {
   backdrop-filter: blur(4px);
   z-index: 200;
   display: flex;
-  align-items: flex-end;     /* Sheet slides up from bottom */
+  align-items: flex-end;
   justify-content: center;
-  padding: 0 0 0 0;
 }
 
 .modal-box {
@@ -662,7 +640,6 @@ html, body {
   to   { transform: translateY(0); }
 }
 
-/* Red alert icon circle */
 .modal-icon-wrap {
   margin-bottom: 20px;
 }
@@ -692,7 +669,6 @@ html, body {
   margin-bottom: 24px;
 }
 
-/* Countdown circle */
 .countdown-wrap {
   position: relative;
   width: 110px;
@@ -739,7 +715,6 @@ html, body {
   line-height: 1.5;
 }
 
-/* Green I'm Safe button */
 .btn-safe {
   width: 100%;
   padding: 15px;
@@ -757,7 +732,6 @@ html, body {
 
 .btn-safe:hover { opacity: 0.88; }
 
-/* Red send now button */
 .btn-send-now {
   width: 100%;
   padding: 15px;
@@ -810,7 +784,7 @@ html, body {
 
 
 /* ============================================================
-   RESPONSIVE: DESKTOP (centered, card-style)
+   RESPONSIVE: DESKTOP
 ============================================================ */
 @media (min-width: 640px) {
   .modal-overlay {
@@ -828,8 +802,6 @@ html, body {
 /* ============================================================
    SCREEN 3: EMERGENCY ASSISTANCE
 ============================================================ */
-
-/* Back button in navbar */
 .btn-back-nav {
   font-family: var(--font);
   font-size: 15px;
@@ -843,7 +815,6 @@ html, body {
   text-align: left;
 }
 
-/* 2x2 grid of helpline call buttons */
 .helpline-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -862,7 +833,6 @@ html, body {
   transition: opacity 0.15s, transform 0.1s;
   cursor: pointer;
 }
-
 .helpline-btn:active { transform: scale(0.96); }
 
 .helpline-ambulance { background: #fff0f0; }
@@ -887,7 +857,6 @@ html, body {
   letter-spacing: -0.5px;
 }
 
-/* Location row */
 .location-row {
   display: flex;
   align-items: center;
@@ -936,7 +905,6 @@ html, body {
 
 .btn-share-location:hover { background: var(--border); }
 
-/* Nearby tabs */
 .nearby-header {
   display: flex;
   align-items: center;
@@ -970,7 +938,6 @@ html, body {
   border-color: var(--text-primary);
 }
 
-/* Loading spinner */
 .nearby-loading {
   display: flex;
   align-items: center;
@@ -1012,7 +979,6 @@ html, body {
   cursor: pointer;
 }
 
-/* Individual nearby place card */
 .nearby-item {
   display: flex;
   align-items: center;
@@ -1070,9 +1036,10 @@ html, body {
 
 .btn-directions:hover { opacity: 0.8; }
 
-/* ===== ADD THESE TO YOUR styles.css (bottom mein paste karo) ===== */
 
-/* Emergency Quick Access Button — Dashboard */
+/* ============================================================
+   EMERGENCY QUICK ACCESS BUTTON
+============================================================ */
 .btn-emergency-quick {
   display: flex;
   align-items: center;
@@ -1087,18 +1054,22 @@ html, body {
   text-align: left;
   transition: all 0.2s ease;
 }
-.btn-emergency-quick:hover, .btn-emergency-quick:active {
+.btn-emergency-quick:hover,
+.btn-emergency-quick:active {
   background: linear-gradient(135deg, #ffe4e4 0%, #ffd0d0 100%);
   transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(239,68,68,0.15);
 }
-.eq-icon { font-size: 26px; flex-shrink: 0; }
-.eq-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.eq-icon  { font-size: 26px; flex-shrink: 0; }
+.eq-text  { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .eq-title { font-size: 15px; font-weight: 600; color: #c0392b; }
-.eq-sub { font-size: 12px; color: #999; }
+.eq-sub   { font-size: 12px; color: #999; }
 .eq-arrow { font-size: 18px; color: #e74c3c; font-weight: 600; flex-shrink: 0; }
 
-/* Local Numbers Section */
+
+/* ============================================================
+   LOCAL NUMBERS SECTION
+============================================================ */
 .local-numbers-list { display: flex; flex-direction: column; gap: 2px; }
 
 .local-section-title {
@@ -1116,132 +1087,38 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid #f5f5f5;
   text-decoration: none;
   transition: background 0.15s;
   border-radius: 10px;
   padding: 12px 10px;
   margin: 0 -10px;
 }
-.local-num-row:hover, .local-num-row:active {
-  background: #f9f9f9;
-}
+.local-num-row:hover,
+.local-num-row:active { background: #f9f9f9; }
+
 .local-num-left {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 .local-num-icon { font-size: 20px; flex-shrink: 0; }
-.local-num-name {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #1a1a1a;
-  margin: 0 0 2px;
-}
-.local-num-sub {
-  font-size: 11.5px;
-  color: #aaa;
-  margin: 0;
-}
-.local-num-call {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #2563eb;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
+.local-num-name { font-size: 13.5px; font-weight: 500; color: #1a1a1a; margin: 0 0 2px; }
+.local-num-sub  { font-size: 11.5px; color: #aaa; margin: 0; }
+.local-num-call { font-size: 12.5px; font-weight: 600; color: #2563eb; white-space: nowrap; flex-shrink: 0; }
 
-/* ===== ADD THESE TO YOUR styles.css (bottom mein paste karo) ===== */
 
-/* Emergency Quick Access Button — Dashboard */
-.btn-emergency-quick {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  background: linear-gradient(135deg, #fff1f1 0%, #ffe4e4 100%);
-  border: 1.5px solid #ffd0d0;
-  border-radius: 16px;
-  padding: 16px 18px;
-  cursor: pointer;
-  margin-bottom: 16px;
-  text-align: left;
-  transition: all 0.2s ease;
-}
-.btn-emergency-quick:hover, .btn-emergency-quick:active {
-  background: linear-gradient(135deg, #ffe4e4 0%, #ffd0d0 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(239,68,68,0.15);
-}
-.eq-icon { font-size: 26px; flex-shrink: 0; }
-.eq-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.eq-title { font-size: 15px; font-weight: 600; color: #c0392b; }
-.eq-sub { font-size: 12px; color: #999; }
-.eq-arrow { font-size: 18px; color: #e74c3c; font-weight: 600; flex-shrink: 0; }
-
-/* Local Numbers Section */
-.local-numbers-list { display: flex; flex-direction: column; gap: 2px; }
-
-.local-section-title {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #aaa;
-  padding: 8px 0 6px;
-  border-bottom: 1px solid #f0f0f0;
-  margin-bottom: 4px;
-}
-
-.local-num-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid #f5f5f5;
-  text-decoration: none;
-  transition: background 0.15s;
-  border-radius: 10px;
-  padding: 12px 10px;
-  margin: 0 -10px;
-}
-.local-num-row:hover, .local-num-row:active {
-  background: #f9f9f9;
-}
-.local-num-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.local-num-icon { font-size: 20px; flex-shrink: 0; }
-.local-num-name {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #1a1a1a;
-  margin: 0 0 2px;
-}
-.local-num-sub {
-  font-size: 11.5px;
-  color: #aaa;
-  margin: 0;
-}
-.local-num-call {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #2563eb;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-/* ===== MULTIPLE CONTACTS SETUP ===== */
+/* ============================================================
+   MULTIPLE CONTACTS SETUP
+============================================================ */
 .contacts-section { margin-bottom: 18px; }
+
 .contacts-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
 }
+
 .btn-add-contact {
   background: none;
   border: 1.5px dashed #2563eb;
@@ -1252,6 +1129,7 @@ html, body {
   border-radius: 20px;
   cursor: pointer;
 }
+
 .contact-row-setup {
   background: #f9f9f9;
   border-radius: 12px;
@@ -1259,13 +1137,22 @@ html, body {
   margin-bottom: 10px;
   border: 1px solid #eee;
 }
+
 .contact-row-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
 }
-.contact-row-label { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.06em; }
+
+.contact-row-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .btn-remove-contact {
   background: none;
   border: none;
@@ -1276,7 +1163,10 @@ html, body {
   padding: 2px 6px;
 }
 
-/* ===== PRE-IMPACT WARNING ===== */
+
+/* ============================================================
+   PRE-IMPACT WARNING
+============================================================ */
 .pre-impact-warning {
   display: flex;
   align-items: center;
@@ -1288,19 +1178,25 @@ html, body {
   margin-bottom: 14px;
   animation: none;
 }
+
 .pre-impact-warning.pulse {
   animation: warningPulse 1s ease-in-out infinite;
 }
+
 @keyframes warningPulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.3); }
   50%       { box-shadow: 0 0 0 8px rgba(245,158,11,0); }
 }
-.piw-icon { font-size: 24px; flex-shrink: 0; }
-.piw-text { display: flex; flex-direction: column; gap: 2px; }
+
+.piw-icon  { font-size: 24px; flex-shrink: 0; }
+.piw-text  { display: flex; flex-direction: column; gap: 2px; }
 .piw-title { font-size: 14px; font-weight: 700; color: #92400e; }
 .piw-sub   { font-size: 12px; color: #b45309; }
 
-/* ===== CAR MODE BUTTON in Navbar ===== */
+
+/* ============================================================
+   CAR MODE BUTTON IN NAVBAR
+============================================================ */
 .btn-car-mode {
   background: #f3f4f6;
   border: none;
@@ -1312,12 +1208,16 @@ html, body {
 }
 .btn-car-mode:hover { background: #e5e7eb; }
 
-/* ===== CAR MONITOR SCREEN ===== */
+
+/* ============================================================
+   SCREEN 4: CAR MONITOR MODE
+============================================================ */
 .car-monitor-screen {
   background: #0a0a0a;
   min-height: 100vh;
   color: white;
 }
+
 .car-monitor-body {
   display: flex;
   flex-direction: column;
@@ -1325,6 +1225,7 @@ html, body {
   padding: 20px 24px;
   min-height: 100vh;
 }
+
 .car-top-bar {
   display: flex;
   justify-content: space-between;
@@ -1332,6 +1233,7 @@ html, body {
   width: 100%;
   margin-bottom: 10px;
 }
+
 .car-back-btn {
   background: rgba(255,255,255,0.1);
   border: none;
@@ -1341,9 +1243,10 @@ html, body {
   font-size: 14px;
   cursor: pointer;
 }
-.car-title { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: 0.05em; }
+
+.car-title  { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: 0.05em; }
 .car-status { font-size: 13px; font-weight: 600; color: #4ade80; }
-.car-user { font-size: 14px; color: #888; margin-bottom: 30px; }
+.car-user   { font-size: 14px; color: #888; margin-bottom: 30px; }
 .car-user span { color: #fff; font-weight: 600; }
 
 .car-gforce-wrap {
@@ -1351,6 +1254,7 @@ html, body {
   margin-bottom: 30px;
   width: 100%;
 }
+
 .car-gforce-label {
   font-size: 11px;
   letter-spacing: 0.15em;
@@ -1358,6 +1262,7 @@ html, body {
   color: #555;
   margin-bottom: 8px;
 }
+
 .car-gforce {
   font-size: 80px;
   font-weight: 700;
@@ -1367,6 +1272,7 @@ html, body {
   margin-bottom: 20px;
   font-variant-numeric: tabular-nums;
 }
+
 .car-impact-bar-bg {
   width: 100%;
   height: 10px;
@@ -1375,6 +1281,7 @@ html, body {
   overflow: hidden;
   margin-bottom: 8px;
 }
+
 .car-impact-fill {
   height: 100%;
   width: 0%;
@@ -1382,8 +1289,10 @@ html, body {
   border-radius: 10px;
   transition: width 0.2s, background 0.3s;
 }
+
 .car-impact-fill.warn   { background: #f59e0b; }
 .car-impact-fill.danger { background: #ef4444; }
+
 .car-threshold-label { font-size: 12px; color: #444; }
 
 .car-sensor-row {
@@ -1391,6 +1300,7 @@ html, body {
   gap: 16px;
   margin-bottom: 36px;
 }
+
 .car-sensor-item {
   display: flex;
   flex-direction: column;
@@ -1400,10 +1310,12 @@ html, body {
   padding: 16px 20px;
   min-width: 80px;
 }
-.car-axis  { font-size: 12px; color: #555; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.1em; }
-.car-sval  { font-size: 22px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+
+.car-axis { font-size: 12px; color: #555; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.1em; }
+.car-sval { font-size: 22px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
 
 .car-actions { display: flex; gap: 12px; width: 100%; margin-bottom: 20px; }
+
 .car-btn-monitor {
   flex: 1;
   background: #22c55e;
@@ -1415,6 +1327,7 @@ html, body {
   font-weight: 700;
   cursor: pointer;
 }
+
 .car-btn-emergency {
   flex: 1;
   background: #ef4444;
@@ -1426,9 +1339,12 @@ html, body {
   font-weight: 700;
   cursor: pointer;
 }
+
 .car-warning-text {
   font-size: 12px;
   color: #333;
   text-align: center;
   padding: 0 20px;
 }
+CSSEOF
+echo "Done"
