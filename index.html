@@ -4,25 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CrashGuard — Emergency Notification System</title>
-
-  <!-- Google Fonts: Inter (Notion/Apple style) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-
-  <!-- Our stylesheet -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-  <!-- ============================================================
-    SCREEN 1: SETUP / LOGIN
-    First screen user sees. Collects name + emergency contact.
-  ============================================================ -->
+  <!-- SCREEN 1: SETUP -->
   <div id="screen-setup" class="screen active">
-
     <div class="setup-wrap">
-
-      <!-- App Logo & Title -->
       <div class="brand">
         <div class="brand-icon">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -35,43 +25,32 @@
         <p class="brand-tagline">Emergency Notification System</p>
       </div>
 
-      <!-- Setup Form Card -->
       <div class="card">
         <h2 class="card-title">Set Up Your Profile</h2>
         <p class="card-subtitle">This information will be used during emergencies</p>
-
         <div class="field-group">
           <label class="field-label">Your Full Name</label>
           <input class="field-input" id="inp-name" type="text" placeholder="e.g. Mohd. Aavez Khan" />
         </div>
-
         <div class="field-group">
           <label class="field-label">Emergency Contact Name</label>
           <input class="field-input" id="inp-contact-name" type="text" placeholder="e.g. Sajid Bhai" />
         </div>
-
         <div class="field-group">
           <label class="field-label">Emergency Contact Number</label>
           <input class="field-input" id="inp-contact-num" type="tel" placeholder="+91 98765 43210" />
         </div>
-
-        <button class="btn-primary" id="btn-setup" onclick="handleSetup()">
-          Continue →
-        </button>
+        <button class="btn-primary" id="btn-setup" onclick="handleSetup()">Continue →</button>
       </div>
 
       <p class="setup-note">Your data is saved locally and securely on Firebase.</p>
     </div>
-
   </div>
 
 
-  <!-- ============================================================
-    SCREEN 2: DASHBOARD (Main monitoring screen)
-  ============================================================ -->
+  <!-- SCREEN 2: DASHBOARD -->
   <div id="screen-dashboard" class="screen">
 
-    <!-- Top Navigation Bar -->
     <div class="navbar">
       <div class="navbar-left">
         <div class="nav-icon">
@@ -89,13 +68,22 @@
 
     <div class="dashboard-body">
 
-      <!-- Greeting -->
       <div class="greeting-block">
         <h2 class="greeting-name" id="greeting-name">Hello —</h2>
         <p class="greeting-sub">Stay protected on every journey.</p>
       </div>
 
-      <!-- Monitoring Card (Main CTA) -->
+      <!-- Emergency Help Quick Access Button -->
+      <button class="btn-emergency-quick" onclick="showScreen('screen-emergency')">
+        <span class="eq-icon">🆘</span>
+        <div class="eq-text">
+          <span class="eq-title">Emergency Help</span>
+          <span class="eq-sub">Helplines · Nearby hospitals · Police</span>
+        </div>
+        <span class="eq-arrow">→</span>
+      </button>
+
+      <!-- Monitoring Card -->
       <div class="card monitor-card">
         <div class="monitor-top">
           <div>
@@ -103,14 +91,12 @@
             <p class="monitor-state" id="monitor-state">Not Active</p>
           </div>
           <div class="monitor-icon" id="monitor-icon">
-            <!-- Shield icon -->
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
           </div>
         </div>
 
-        <!-- Sensor permission notice (shown on mobile) -->
         <div id="sensor-notice" class="sensor-notice">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Tap "Enable Sensors" first on your phone to activate motion detection.
@@ -120,10 +106,7 @@
           <button class="btn-sensor" id="btn-sensor" onclick="requestSensor()">Enable Sensors</button>
           <button class="btn-start" id="btn-start" onclick="startMonitoring()" disabled>Start Monitoring</button>
         </div>
-
-        <button class="btn-stop" id="btn-stop" onclick="stopMonitoring()" style="display:none">
-          Stop Monitoring
-        </button>
+        <button class="btn-stop" id="btn-stop" onclick="stopMonitoring()" style="display:none">Stop Monitoring</button>
       </div>
 
       <!-- Stats Row -->
@@ -142,7 +125,7 @@
         </div>
       </div>
 
-      <!-- Live Sensor Values (hidden until sensors enabled) -->
+      <!-- Live Sensor Values -->
       <div class="card" id="sensor-card" style="display:none">
         <p class="card-label" style="margin-bottom:14px">Live Sensor Data</p>
         <div class="sensor-row">
@@ -162,8 +145,6 @@
             <span class="sensor-unit">m/s²</span>
           </div>
         </div>
-
-        <!-- Impact bar -->
         <div class="impact-bar-wrap">
           <div class="impact-bar-bg">
             <div class="impact-bar-fill" id="impact-bar"></div>
@@ -202,13 +183,9 @@
   </div>
 
 
-  <!-- ============================================================
-    MODAL: CRASH ALERT (appears over dashboard when crash detected)
-  ============================================================ -->
+  <!-- MODAL: CRASH ALERT -->
   <div id="modal-alert" class="modal-overlay" style="display:none">
     <div class="modal-box">
-
-      <!-- Alert icon -->
       <div class="modal-icon-wrap">
         <div class="modal-icon">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -218,58 +195,43 @@
           </svg>
         </div>
       </div>
-
       <h2 class="modal-title">Crash Detected</h2>
       <p class="modal-subtitle">Are you okay?</p>
-
-      <!-- Countdown -->
       <div class="countdown-wrap">
         <svg class="countdown-svg" viewBox="0 0 100 100">
           <circle class="cd-track" cx="50" cy="50" r="44"/>
-          <circle class="cd-fill" id="cd-fill" cx="50" cy="50" r="44"
-            stroke-dasharray="276.5"
-            stroke-dashoffset="0"/>
+          <circle class="cd-fill" id="cd-fill" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/>
         </svg>
         <div class="countdown-num" id="countdown-num">30</div>
       </div>
-
       <p class="modal-message">
         Emergency alert will be sent automatically in <strong id="cd-sec-text">30</strong> seconds if no response.
       </p>
-
       <button class="btn-safe" onclick="iAmSafe()">I'm Safe</button>
       <button class="btn-send-now" onclick="sendNow()">Send Alert Now</button>
-
     </div>
   </div>
 
 
-  <!-- ============================================================
-    MODAL: ALERT SENT CONFIRMATION
-  ============================================================ -->
+  <!-- MODAL: ALERT SENT -->
   <div id="modal-sent" class="modal-overlay" style="display:none">
     <div class="modal-box">
       <div class="sent-icon">✓</div>
       <h2 class="modal-title">Alert Sent</h2>
       <p class="modal-subtitle">Emergency contacts have been notified.</p>
       <div class="sent-details" id="sent-details">—</div>
-      <button class="btn-primary" onclick="goToEmergencyScreen()" style="margin-bottom:10px">
-        🆘 Get Emergency Help
-      </button>
+      <button class="btn-primary" onclick="goToEmergencyScreen()" style="margin-bottom:10px">🆘 Get Emergency Help</button>
       <button class="btn-stop" onclick="closeSentModal()">Back to Dashboard</button>
     </div>
   </div>
 
 
-  <!-- ============================================================
-    SCREEN 3: EMERGENCY ASSISTANCE
-    Shows after alert is sent. Nearby help + helplines.
-  ============================================================ -->
+  <!-- SCREEN 3: EMERGENCY ASSISTANCE -->
   <div id="screen-emergency" class="screen">
 
     <div class="navbar">
       <div class="navbar-left">
-        <button class="btn-back-nav" onclick="closeSentModal()">← Back</button>
+        <button class="btn-back-nav" onclick="showScreen('screen-dashboard')">← Back</button>
       </div>
       <span class="nav-title" style="color:var(--red)">Emergency Help</span>
       <div style="width:60px"></div>
@@ -277,33 +239,128 @@
 
     <div class="dashboard-body">
 
-      <!-- India Emergency Helplines -->
+      <!-- National Helplines -->
       <div class="card">
-        <p class="card-label" style="margin-bottom:14px">National Helplines</p>
+        <p class="card-label" style="margin-bottom:14px">🇮🇳 National Helplines</p>
         <div class="helpline-grid">
-
           <a class="helpline-btn helpline-ambulance" href="tel:108">
             <span class="helpline-icon">🚑</span>
             <span class="helpline-name">Ambulance</span>
             <span class="helpline-num">108</span>
           </a>
-
           <a class="helpline-btn helpline-police" href="tel:100">
             <span class="helpline-icon">👮</span>
             <span class="helpline-name">Police</span>
             <span class="helpline-num">100</span>
           </a>
-
           <a class="helpline-btn helpline-fire" href="tel:101">
             <span class="helpline-icon">🚒</span>
             <span class="helpline-name">Fire</span>
             <span class="helpline-num">101</span>
           </a>
-
           <a class="helpline-btn helpline-unified" href="tel:112">
             <span class="helpline-icon">🆘</span>
             <span class="helpline-name">Emergency</span>
             <span class="helpline-num">112</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Important Local Numbers — Chhattisgarh -->
+      <div class="card">
+        <p class="card-label" style="margin-bottom:14px">🏥 Important Local Numbers</p>
+        <div class="local-numbers-list">
+
+          <div class="local-section-title">Hospitals — Chhattisgarh</div>
+
+          <a class="local-num-row" href="tel:07712573777">
+            <div class="local-num-left">
+              <span class="local-num-icon">🏥</span>
+              <div>
+                <p class="local-num-name">AIIMS Raipur</p>
+                <p class="local-num-sub">All India Institute of Medical Sciences</p>
+              </div>
+            </div>
+            <span class="local-num-call">0771-2573777</span>
+          </a>
+
+          <a class="local-num-row" href="tel:07714224000">
+            <div class="local-num-left">
+              <span class="local-num-icon">🏥</span>
+              <div>
+                <p class="local-num-name">Dr. BR Ambedkar Hospital</p>
+                <p class="local-num-sub">Raipur — Government</p>
+              </div>
+            </div>
+            <span class="local-num-call">0771-4224000</span>
+          </a>
+
+          <a class="local-num-row" href="tel:07882220088">
+            <div class="local-num-left">
+              <span class="local-num-icon">🏥</span>
+              <div>
+                <p class="local-num-name">Apollo BSR Hospital</p>
+                <p class="local-num-sub">Bhilai</p>
+              </div>
+            </div>
+            <span class="local-num-call">0788-2220088</span>
+          </a>
+
+          <a class="local-num-row" href="tel:07882221531">
+            <div class="local-num-left">
+              <span class="local-num-icon">🏥</span>
+              <div>
+                <p class="local-num-name">BSP Hospital</p>
+                <p class="local-num-sub">Bhilai Steel Plant Hospital</p>
+              </div>
+            </div>
+            <span class="local-num-call">0788-2221531</span>
+          </a>
+
+          <a class="local-num-row" href="tel:07744222045">
+            <div class="local-num-left">
+              <span class="local-num-icon">🏥</span>
+              <div>
+                <p class="local-num-name">District Hospital</p>
+                <p class="local-num-sub">Rajnandgaon</p>
+              </div>
+            </div>
+            <span class="local-num-call">07744-222045</span>
+          </a>
+
+          <div class="local-section-title" style="margin-top:14px">Police — Chhattisgarh</div>
+
+          <a class="local-num-row" href="tel:07714241444">
+            <div class="local-num-left">
+              <span class="local-num-icon">👮</span>
+              <div>
+                <p class="local-num-name">Raipur Police Control Room</p>
+                <p class="local-num-sub">24x7 Emergency</p>
+              </div>
+            </div>
+            <span class="local-num-call">0771-4241444</span>
+          </a>
+
+          <a class="local-num-row" href="tel:07882221234">
+            <div class="local-num-left">
+              <span class="local-num-icon">👮</span>
+              <div>
+                <p class="local-num-name">Bhilai Police Station</p>
+                <p class="local-num-sub">Durg District</p>
+              </div>
+            </div>
+            <span class="local-num-call">0788-2221234</span>
+          </a>
+
+          <a class="local-num-row" href="tel:07744222100">
+            <div class="local-num-left">
+              <span class="local-num-icon">👮</span>
+              <div>
+                <p class="local-num-name">SP Office Rajnandgaon</p>
+                <p class="local-num-sub">Superintendent of Police</p>
+              </div>
+            </div>
+            <span class="local-num-call">07744-222100</span>
           </a>
 
         </div>
@@ -311,53 +368,39 @@
 
       <!-- Share Live Location -->
       <div class="card">
-        <p class="card-label" style="margin-bottom:12px">Your Location</p>
+        <p class="card-label" style="margin-bottom:12px">📍 Your Location</p>
         <div class="location-row" id="location-row">
           <div class="location-coords" id="location-coords">Fetching location...</div>
-          <button class="btn-maps" id="btn-maps" onclick="openMaps()" disabled>
-            📍 Open in Maps
-          </button>
+          <button class="btn-maps" id="btn-maps" onclick="openMaps()" disabled>Open in Maps</button>
         </div>
-        <button class="btn-share-location" onclick="shareLocation()">
-          📤 Share Live Location
-        </button>
+        <button class="btn-share-location" onclick="shareLocation()">📤 Share Live Location</button>
       </div>
 
       <!-- Nearby Places (OpenStreetMap) -->
       <div class="card">
         <div class="nearby-header">
-          <p class="card-label">Nearby Help</p>
+          <p class="card-label">📡 Nearby Help (Live)</p>
           <div class="nearby-tabs">
             <button class="tab-btn active" onclick="switchTab('hospital', this)">🏥 Hospitals</button>
             <button class="tab-btn" onclick="switchTab('police', this)">👮 Police</button>
           </div>
         </div>
-
-        <!-- Loading state -->
         <div id="nearby-loading" class="nearby-loading">
           <div class="loading-spinner"></div>
           <span>Finding nearby help...</span>
         </div>
-
-        <!-- Error state -->
         <div id="nearby-error" class="nearby-error" style="display:none">
           <p>Could not fetch nearby places.</p>
           <button class="btn-retry" onclick="fetchNearbyPlaces()">Try Again</button>
         </div>
-
-        <!-- Results list -->
         <div id="nearby-list" style="display:none"></div>
-
       </div>
 
     </div>
   </div>
 
 
-  <!-- Firebase SDK (loaded as module) -->
   <script type="module" src="firebase.js"></script>
-
-  <!-- App Logic -->
   <script src="app.js"></script>
 
 </body>
