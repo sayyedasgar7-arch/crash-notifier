@@ -10,9 +10,12 @@
 </head>
 <body>
 
-  <!-- SCREEN 1: SETUP -->
+  <!-- ============================================================
+    SCREEN 1: SETUP — MULTIPLE CONTACTS
+  ============================================================ -->
   <div id="screen-setup" class="screen active">
     <div class="setup-wrap">
+
       <div class="brand">
         <div class="brand-icon">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -28,18 +31,21 @@
       <div class="card">
         <h2 class="card-title">Set Up Your Profile</h2>
         <p class="card-subtitle">This information will be used during emergencies</p>
+
         <div class="field-group">
           <label class="field-label">Your Full Name</label>
           <input class="field-input" id="inp-name" type="text" placeholder="e.g. Mohd. Aavez Khan" />
         </div>
-        <div class="field-group">
-          <label class="field-label">Emergency Contact Name</label>
-          <input class="field-input" id="inp-contact-name" type="text" placeholder="e.g. Sajid Bhai" />
+
+        <!-- Multiple Contacts -->
+        <div class="contacts-section">
+          <div class="contacts-section-header">
+            <label class="field-label" style="margin:0">Emergency Contacts</label>
+            <button class="btn-add-contact" onclick="addContactRow()">+ Add Contact</button>
+          </div>
+          <div id="contacts-container"></div>
         </div>
-        <div class="field-group">
-          <label class="field-label">Emergency Contact Number</label>
-          <input class="field-input" id="inp-contact-num" type="tel" placeholder="+91 98765 43210" />
-        </div>
+
         <button class="btn-primary" id="btn-setup" onclick="handleSetup()">Continue →</button>
       </div>
 
@@ -48,7 +54,9 @@
   </div>
 
 
-  <!-- SCREEN 2: DASHBOARD -->
+  <!-- ============================================================
+    SCREEN 2: DASHBOARD
+  ============================================================ -->
   <div id="screen-dashboard" class="screen">
 
     <div class="navbar">
@@ -60,9 +68,12 @@
         </div>
         <span class="nav-title">CrashGuard</span>
       </div>
-      <div class="status-badge" id="status-badge">
-        <span class="status-dot" id="status-dot"></span>
-        <span id="status-label">Standby</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="btn-car-mode" onclick="showScreen('screen-car-monitor')" title="Car Monitor Mode">🚗</button>
+        <div class="status-badge" id="status-badge">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-label">Standby</span>
+        </div>
       </div>
     </div>
 
@@ -73,7 +84,16 @@
         <p class="greeting-sub">Stay protected on every journey.</p>
       </div>
 
-      <!-- Emergency Help Quick Access Button -->
+      <!-- PRE-IMPACT WARNING BANNER (hidden by default) -->
+      <div id="pre-impact-warning" class="pre-impact-warning" style="display:none">
+        <span class="piw-icon">⚠️</span>
+        <div class="piw-text">
+          <span class="piw-title">High Impact Detected!</span>
+          <span class="piw-sub">G-force above 1.5G — Stay alert, possible rough impact</span>
+        </div>
+      </div>
+
+      <!-- Emergency Quick Access -->
       <button class="btn-emergency-quick" onclick="showScreen('screen-emergency')">
         <span class="eq-icon">🆘</span>
         <div class="eq-text">
@@ -125,7 +145,7 @@
         </div>
       </div>
 
-      <!-- Live Sensor Values -->
+      <!-- Live Sensor Data -->
       <div class="card" id="sensor-card" style="display:none">
         <p class="card-label" style="margin-bottom:14px">Live Sensor Data</p>
         <div class="sensor-row">
@@ -153,18 +173,14 @@
         </div>
       </div>
 
-      <!-- Emergency Contact Card -->
+      <!-- Emergency Contacts Card — Multiple -->
       <div class="card">
         <div class="contact-header">
-          <p class="card-label">Emergency Contact</p>
+          <p class="card-label">Emergency Contacts</p>
           <button class="btn-edit" onclick="editContact()">Edit</button>
         </div>
-        <div class="contact-row">
-          <div class="contact-avatar" id="contact-avatar">—</div>
-          <div class="contact-info">
-            <p class="contact-name" id="contact-name-disp">Not set</p>
-            <p class="contact-num" id="contact-num-disp">—</p>
-          </div>
+        <div id="contacts-list">
+          <p class="log-empty">No contacts set.</p>
         </div>
       </div>
 
@@ -183,50 +199,9 @@
   </div>
 
 
-  <!-- MODAL: CRASH ALERT -->
-  <div id="modal-alert" class="modal-overlay" style="display:none">
-    <div class="modal-box">
-      <div class="modal-icon-wrap">
-        <div class="modal-icon">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-        </div>
-      </div>
-      <h2 class="modal-title">Crash Detected</h2>
-      <p class="modal-subtitle">Are you okay?</p>
-      <div class="countdown-wrap">
-        <svg class="countdown-svg" viewBox="0 0 100 100">
-          <circle class="cd-track" cx="50" cy="50" r="44"/>
-          <circle class="cd-fill" id="cd-fill" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/>
-        </svg>
-        <div class="countdown-num" id="countdown-num">30</div>
-      </div>
-      <p class="modal-message">
-        Emergency alert will be sent automatically in <strong id="cd-sec-text">30</strong> seconds if no response.
-      </p>
-      <button class="btn-safe" onclick="iAmSafe()">I'm Safe</button>
-      <button class="btn-send-now" onclick="sendNow()">Send Alert Now</button>
-    </div>
-  </div>
-
-
-  <!-- MODAL: ALERT SENT -->
-  <div id="modal-sent" class="modal-overlay" style="display:none">
-    <div class="modal-box">
-      <div class="sent-icon">✓</div>
-      <h2 class="modal-title">Alert Sent</h2>
-      <p class="modal-subtitle">Emergency contacts have been notified.</p>
-      <div class="sent-details" id="sent-details">—</div>
-      <button class="btn-primary" onclick="goToEmergencyScreen()" style="margin-bottom:10px">🆘 Get Emergency Help</button>
-      <button class="btn-stop" onclick="closeSentModal()">Back to Dashboard</button>
-    </div>
-  </div>
-
-
-  <!-- SCREEN 3: EMERGENCY ASSISTANCE -->
+  <!-- ============================================================
+    SCREEN 3: EMERGENCY ASSISTANCE
+  ============================================================ -->
   <div id="screen-emergency" class="screen">
 
     <div class="navbar">
@@ -266,7 +241,7 @@
         </div>
       </div>
 
-      <!-- Important Local Numbers — Chhattisgarh -->
+      <!-- Local Numbers -->
       <div class="card">
         <p class="card-label" style="margin-bottom:14px">🏥 Important Local Numbers</p>
         <div class="local-numbers-list">
@@ -311,7 +286,7 @@
               <span class="local-num-icon">🏥</span>
               <div>
                 <p class="local-num-name">BSP Hospital</p>
-                <p class="local-num-sub">Bhilai Steel Plant Hospital</p>
+                <p class="local-num-sub">Bhilai Steel Plant</p>
               </div>
             </div>
             <span class="local-num-call">0788-2221531</span>
@@ -366,7 +341,7 @@
         </div>
       </div>
 
-      <!-- Share Live Location -->
+      <!-- Location -->
       <div class="card">
         <p class="card-label" style="margin-bottom:12px">📍 Your Location</p>
         <div class="location-row" id="location-row">
@@ -376,7 +351,7 @@
         <button class="btn-share-location" onclick="shareLocation()">📤 Share Live Location</button>
       </div>
 
-      <!-- Nearby Places (OpenStreetMap) -->
+      <!-- Nearby Places -->
       <div class="card">
         <div class="nearby-header">
           <p class="card-label">📡 Nearby Help (Live)</p>
@@ -396,6 +371,123 @@
         <div id="nearby-list" style="display:none"></div>
       </div>
 
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+    SCREEN 4: CAR MONITOR MODE
+  ============================================================ -->
+  <div id="screen-car-monitor" class="screen car-monitor-screen">
+
+    <div class="car-monitor-body">
+
+      <!-- Top bar -->
+      <div class="car-top-bar">
+        <button class="car-back-btn" onclick="showScreen('screen-dashboard')">← Exit</button>
+        <span class="car-title">CrashGuard</span>
+        <span class="car-status" id="car-status">● Standby</span>
+      </div>
+
+      <!-- User name -->
+      <div class="car-user">Driving: <span id="car-username">—</span></div>
+
+      <!-- Big G-Force Display -->
+      <div class="car-gforce-wrap">
+        <div class="car-gforce-label">IMPACT FORCE</div>
+        <div class="car-gforce" id="car-gforce">0.00G</div>
+        <div class="car-impact-bar-bg">
+          <div class="car-impact-fill" id="car-impact-bar"></div>
+        </div>
+        <div class="car-threshold-label">Crash threshold: 2.5G</div>
+      </div>
+
+      <!-- Sensor Values -->
+      <div class="car-sensor-row">
+        <div class="car-sensor-item">
+          <span class="car-axis">X</span>
+          <span class="car-sval" id="car-val-x">0.00</span>
+        </div>
+        <div class="car-sensor-item">
+          <span class="car-axis">Y</span>
+          <span class="car-sval" id="car-val-y">0.00</span>
+        </div>
+        <div class="car-sensor-item">
+          <span class="car-axis">Z</span>
+          <span class="car-sval" id="car-val-z">0.00</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="car-actions">
+        <button class="car-btn-monitor" onclick="toggleMonitoringFromCar()">
+          Start Monitoring
+        </button>
+        <button class="car-btn-emergency" onclick="showScreen('screen-emergency')">
+          🆘 Emergency
+        </button>
+      </div>
+
+      <!-- Warning Text -->
+      <div class="car-warning-text">
+        ⚠️ Keep phone mounted safely. Do not operate while driving.
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+    MODAL: CRASH ALERT — 10 SECOND COUNTDOWN
+  ============================================================ -->
+  <div id="modal-alert" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+      <div class="modal-icon-wrap">
+        <div class="modal-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+      </div>
+
+      <h2 class="modal-title">Crash Detected</h2>
+      <p class="modal-subtitle">Are you okay?</p>
+
+      <div class="countdown-wrap">
+        <svg class="countdown-svg" viewBox="0 0 100 100">
+          <circle class="cd-track" cx="50" cy="50" r="44"/>
+          <circle class="cd-fill" id="cd-fill" cx="50" cy="50" r="44"
+            stroke-dasharray="276.5"
+            stroke-dashoffset="0"/>
+        </svg>
+        <div class="countdown-num" id="countdown-num">10</div>
+      </div>
+
+      <p class="modal-message">
+        Emergency alert will be sent automatically in <strong id="cd-sec-text">10</strong> seconds.
+      </p>
+
+      <button class="btn-safe" onclick="iAmSafe()">I'm Safe</button>
+      <button class="btn-send-now" onclick="sendNow()">Send Alert Now</button>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+    MODAL: ALERT SENT
+  ============================================================ -->
+  <div id="modal-sent" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+      <div class="sent-icon">✓</div>
+      <h2 class="modal-title">Alert Sent</h2>
+      <p class="modal-subtitle">Emergency contacts have been notified.</p>
+      <div class="sent-details" id="sent-details">—</div>
+      <button class="btn-primary" onclick="goToEmergencyScreen()" style="margin-bottom:10px">
+        🆘 Get Emergency Help
+      </button>
+      <button class="btn-stop" onclick="closeSentModal()">Back to Dashboard</button>
     </div>
   </div>
 
