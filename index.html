@@ -3,6 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ============================================================
+    SECURITY HEADERS
+    Prevents XSS, clickjacking, and injection attacks
+  ============================================================ -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src https://fonts.gstatic.com;
+    connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com https://overpass-api.de https://nominatim.openstreetmap.org;
+    img-src 'self' data: https://raw.githubusercontent.com;
+    frame-ancestors 'none';
+  " />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+
   <title>CrashGuard — Emergency Notification System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -173,7 +190,7 @@
         </div>
       </div>
 
-      <!-- Emergency Contacts Card — Multiple -->
+      <!-- Emergency Contacts Card -->
       <div class="card">
         <div class="contact-header">
           <p class="card-label">Emergency Contacts</p>
@@ -382,17 +399,14 @@
 
     <div class="car-monitor-body">
 
-      <!-- Top bar -->
       <div class="car-top-bar">
         <button class="car-back-btn" onclick="showScreen('screen-dashboard')">← Exit</button>
         <span class="car-title">CrashGuard</span>
         <span class="car-status" id="car-status">● Standby</span>
       </div>
 
-      <!-- User name -->
       <div class="car-user">Driving: <span id="car-username">—</span></div>
 
-      <!-- Big G-Force Display -->
       <div class="car-gforce-wrap">
         <div class="car-gforce-label">IMPACT FORCE</div>
         <div class="car-gforce" id="car-gforce">0.00G</div>
@@ -402,7 +416,6 @@
         <div class="car-threshold-label">Crash threshold: 2.5G</div>
       </div>
 
-      <!-- Sensor Values -->
       <div class="car-sensor-row">
         <div class="car-sensor-item">
           <span class="car-axis">X</span>
@@ -418,7 +431,6 @@
         </div>
       </div>
 
-      <!-- Action Buttons -->
       <div class="car-actions">
         <button class="car-btn-monitor" onclick="toggleMonitoringFromCar()">
           Start Monitoring
@@ -428,7 +440,6 @@
         </button>
       </div>
 
-      <!-- Warning Text -->
       <div class="car-warning-text">
         ⚠️ Keep phone mounted safely. Do not operate while driving.
       </div>
