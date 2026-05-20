@@ -256,20 +256,122 @@ window.addEventListener('load', () => {
 
 async function requestNotificationPermission() {
   if ('Notification' in window && Notification.permission === 'default') {
-    await Notification.requestPermission();
+    const result = await Notification.requestPermission();
+    console.log('Notification permission:', result);
   }
 }
-
+ 
 function sendNotification(title, body) {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, {
-      body,
-      icon:             'https://raw.githubusercontent.com/sayyedasgar7-arch/crash-notifier/main/icon.png',
-      badge:            'https://raw.githubusercontent.com/sayyedasgar7-arch/crash-notifier/main/icon.png',
-      vibrate:          [300, 100, 300, 100, 300],
-      requireInteraction: true
-    });
+  // 1. Vibration — works on ALL Android phones always
+  if ('vibrate' in navigator) {
+    if (title.includes('CRASH')) {
+      navigator.vibrate([500, 200, 500, 200, 500, 200, 1000]);
+    } else {
+      navigator.vibrate([300, 100, 300]);
+    }
   }
+ 
+  // 2. Audio beep — works everywhere
+  playAlertSound(title.includes('CRASH') ? 'crash' : 'warn');
+ 
+  // 3. Browser Notification — Android Chrome / installed PWA
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(title, {
+        body,
+        icon: '/crash-notifier/icon-192.png',
+        badge: '/crash-notifier/icon-192.png',
+        requireInteraction: true,
+        tag: 'crashguard-alert'
+      });
+    } catch (e) {
+      console.log('Notification error:', e);
+    }
+  }
+ 
+  // 4. In-app banner — fallback for ALL phones including iPhone
+  showInAppBanner(title, body);
+}
+ 
+function playAlertSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+ 
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+ 
+    if (type === 'crash') {
+      oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+      oscillator.frequency.setValueAtTime(440, ctx.currentTime + 0.3);
+      oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.6);
+      gainNode.gain.setValueAtTime(0.8, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 1.2);
+    } else {
+      oscillator.frequency.setValueAtTime(660, ctx.currentTime);
+      gainNode.gain.setValueAtTime(0.5, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.6);
+    }
+  } catch (e) {
+    console.log('Audio not supported:', e);
+  }
+}
+ 
+function showInAppBanner(title, body) {
+  // Remove existing banner if any
+  const existing = document.getElementById('cg-banner');
+  if (existing) existing.remove();
+ 
+  const isCrash = title.includes('CRASH');
+ 
+  const banner = document.createElement('div');
+  banner.id = 'cg-banner';
+  banner.style.cssText = `
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    background: ${isCrash ? '#ff3b30' : '#f59e0b'};
+    color: white;
+    padding: 14px 20px;
+    border-radius: 16px;
+    max-width: 340px;
+    width: calc(100% - 32px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    font-family: 'Inter', sans-serif;
+    animation: bannerSlide 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    cursor: pointer;
+  `;
+ 
+  banner.innerHTML = `
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px">${title}</div>
+    <div style="font-size:13px;opacity:0.9">${body}</div>
+  `;
+ 
+  // Add animation keyframes once
+  if (!document.getElementById('banner-style')) {
+    const style = document.createElement('style');
+    style.id = 'banner-style';
+    style.textContent = `
+      @keyframes bannerSlide {
+        from { opacity:0; transform: translateX(-50%) translateY(-20px); }
+        to   { opacity:1; transform: translateX(-50%) translateY(0); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+ 
+  banner.onclick = () => banner.remove();
+  document.body.appendChild(banner);
+ 
+  // Auto remove after 5 seconds
+  setTimeout(() => { if (banner.parentNode) banner.remove(); }, 5000);
 }
 
 
